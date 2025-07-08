@@ -88,10 +88,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="px-4 py-4 border-t border-gray-200">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-gray-600">SJ</span>
+                <span className="text-sm font-medium text-gray-600">SW</span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">Sarah Johnson</p>
+                <p className="text-sm font-medium text-gray-700">Senali Wijesinghe</p>
                 <p className="text-xs text-gray-500">Teacher</p>
               </div>
             </div>

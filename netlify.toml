@@ -14,4 +14,11 @@
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = false
+
+# Redirect all other routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
   force = false 
