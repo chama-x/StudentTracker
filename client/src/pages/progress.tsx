@@ -19,7 +19,7 @@ export default function ProgressTracking() {
   });
 
   const filteredAssignments = assignments?.filter(assignment => 
-    !selectedStudent || assignment.studentId === parseInt(selectedStudent)
+    !selectedStudent || selectedStudent === "all" || assignment.studentId === parseInt(selectedStudent)
   ) || [];
 
   const getStatusColor = (status: string) => {
@@ -56,7 +56,7 @@ export default function ProgressTracking() {
             <SelectValue placeholder="Select a student" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Students</SelectItem>
+            <SelectItem value="all">All Students</SelectItem>
             {students?.map((student) => (
               <SelectItem key={student.id} value={student.id.toString()}>
                 {student.name}

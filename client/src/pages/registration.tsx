@@ -24,6 +24,8 @@ export default function Registration() {
 
   const { data: courses } = useQuery<Course[]>({
     queryKey: ["/api/courses"],
+    retry: 3,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const form = useForm<StudentRegistrationForm>({
@@ -111,7 +113,7 @@ export default function Registration() {
                     <FormItem>
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input type="tel" placeholder="Enter phone number" {...field} />
+                        <Input type="tel" placeholder="Phone number" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -138,18 +140,28 @@ export default function Registration() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Course</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a course" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {courses?.map((course) => (
-                            <SelectItem key={course.id} value={course.name}>
-                              {course.name}
-                            </SelectItem>
-                          ))}
+                          {courses && courses.length > 0 ? (
+                            courses.map((course) => (
+                              <SelectItem key={course.id} value={course.name}>
+                                {course.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <>
+                              <SelectItem value="Computer Science">Computer Science</SelectItem>
+                              <SelectItem value="Mathematics">Mathematics</SelectItem>
+                              <SelectItem value="Physics">Physics</SelectItem>
+                              <SelectItem value="Chemistry">Chemistry</SelectItem>
+                              <SelectItem value="Biology">Biology</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -163,7 +175,7 @@ export default function Registration() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />

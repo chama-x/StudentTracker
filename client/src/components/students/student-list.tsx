@@ -50,7 +50,7 @@ export default function StudentList() {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCourse = !selectedCourse || student.course === selectedCourse;
+    const matchesCourse = !selectedCourse || selectedCourse === "all" || student.course === selectedCourse;
     return matchesSearch && matchesCourse;
   }) || [];
 
@@ -112,7 +112,7 @@ export default function StudentList() {
                 <SelectValue placeholder="All Courses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Courses</SelectItem>
+                <SelectItem value="all">All Courses</SelectItem>
                 {courses?.map((course) => (
                   <SelectItem key={course.id} value={course.name}>
                     {course.name}

@@ -70,7 +70,7 @@ export default function Statistics() {
           case 'F': return 0.0;
           default: return 0;
         }
-      });
+      }) as number[];
       
       const averageGPA = gradePoints.length > 0 
         ? gradePoints.reduce((sum, gpa) => sum + gpa, 0) / gradePoints.length
@@ -99,7 +99,7 @@ export default function Statistics() {
               <SelectValue placeholder="All Courses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Courses</SelectItem>
+              <SelectItem value="all">All Courses</SelectItem>
               {courses?.map((course) => (
                 <SelectItem key={course.id} value={course.name}>
                   {course.name}
