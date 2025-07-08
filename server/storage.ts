@@ -100,6 +100,9 @@ export class MemStorage implements IStorage {
       enrollmentDate: now,
       lastActivity: now,
       avatar: null,
+      phone: insertStudent.phone ?? null,
+      grade: insertStudent.grade ?? null,
+      status: insertStudent.status ?? null,
     };
     this.students.set(student.id, student);
     return student;
@@ -145,6 +148,8 @@ export class MemStorage implements IStorage {
     const course: Course = {
       ...insertCourse,
       id: this.currentCourseId++,
+      description: insertCourse.description ?? null,
+      isActive: insertCourse.isActive ?? null,
     };
     this.courses.set(course.id, course);
     return course;
@@ -163,6 +168,10 @@ export class MemStorage implements IStorage {
     const assignment: Assignment = {
       ...insertAssignment,
       id: this.currentAssignmentId++,
+      grade: insertAssignment.grade ?? null,
+      maxGrade: insertAssignment.maxGrade ?? null,
+      submissionDate: insertAssignment.submissionDate ?? null,
+      status: insertAssignment.status ?? null,
     };
     this.assignments.set(assignment.id, assignment);
     return assignment;
@@ -193,6 +202,8 @@ export class MemStorage implements IStorage {
     const progressRecord: Progress = {
       ...insertProgress,
       id: this.currentProgressId++,
+      overallGrade: insertProgress.overallGrade ?? null,
+      attendanceRate: insertProgress.attendanceRate ?? null,
     };
     this.progress.set(progressRecord.id, progressRecord);
     return progressRecord;
