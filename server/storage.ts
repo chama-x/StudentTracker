@@ -12,6 +12,8 @@ import {
   type Progress,
   type InsertProgress
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, ilike, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Students
@@ -49,176 +51,164 @@ export interface IStorage {
   }>;
 }
 
-export class MemStorage implements IStorage {
-  private students: Map<number, Student> = new Map();
-  private courses: Map<number, Course> = new Map();
-  private assignments: Map<number, Assignment> = new Map();
-  private progress: Map<number, Progress> = new Map();
-  private currentStudentId = 1;
-  private currentCourseId = 1;
-  private currentAssignmentId = 1;
-  private currentProgressId = 1;
-
+export class DatabaseStorage implements IStorage {
   constructor() {
-    // Initialize with some default courses
+    // Initialize default courses if they don't exist
     this.initializeCourses();
   }
 
-  private initializeCourses() {
-    const defaultCourses = [
-      { name: "Computer Science", code: "CS101", description: "Introduction to Computer Science", isActive: true },
-      { name: "Mathematics", code: "MATH101", description: "Advanced Mathematics", isActive: true },
-      { name: "Physics", code: "PHYS101", description: "General Physics", isActive: true },
-      { name: "Chemistry", code: "CHEM101", description: "General Chemistry", isActive: true },
-      { name: "Biology", code: "BIO101", description: "General Biology", isActive: true },
-    ];
+  private async initializeCourses() {
+    try {
+      const existingCourses = await db.select().from(courses).limit(1);
+      
+      if (existingCourses.length === 0) {
+        const defaultCourses = [
+          { name: "Computer Science", code: "CS101", description: "Introduction to Computer Science", isActive: true },
+          { name: "Mathematics", code: "MATH101", description: "Advanced Mathematics", isActive: true },
+          { name: "Physics", code: "PHYS101", description: "General Physics", isActive: true },
+          { name: "Chemistry", code: "CHEM101", description: "General Chemistry", isActive: true },
+          { name: "Biology", code: "BIO101", description: "General Biology", isActive: true },
+        ];
 
-    defaultCourses.forEach(course => {
-      const newCourse: Course = { ...course, id: this.currentCourseId++ };
-      this.courses.set(newCourse.id, newCourse);
-    });
+        await db.insert(courses).values(defaultCourses);
+      }
+    } catch (error) {
+      console.warn("Failed to initialize default courses:", error);
+    }
   }
 
   // Students
   async getStudents(): Promise<Student[]> {
-    return Array.from(this.students.values());
+    return await db.select().from(students).orderBy(students.id);
   }
 
   async getStudent(id: number): Promise<Student | undefined> {
-    return this.students.get(id);
+    const result = await db.select().from(students).where(eq(students.id, id)).limit(1);
+    return result[0];
   }
 
   async getStudentByEmail(email: string): Promise<Student | undefined> {
-    return Array.from(this.students.values()).find(student => student.email === email);
+    const result = await db.select().from(students).where(eq(students.email, email)).limit(1);
+    return result[0];
   }
 
   async createStudent(insertStudent: InsertStudent): Promise<Student> {
     const now = new Date().toISOString();
-    const student: Student = {
+    const studentData = {
       ...insertStudent,
-      id: this.currentStudentId++,
       enrollmentDate: now,
       lastActivity: now,
       avatar: null,
-      phone: insertStudent.phone ?? null,
-      grade: insertStudent.grade ?? null,
-      status: insertStudent.status ?? null,
     };
-    this.students.set(student.id, student);
-    return student;
+
+    const result = await db.insert(students).values(studentData).returning();
+    return result[0];
   }
 
   async updateStudent(id: number, updates: Partial<InsertStudent>): Promise<Student | undefined> {
-    const student = this.students.get(id);
-    if (!student) return undefined;
-
-    const updatedStudent: Student = {
-      ...student,
+    const updateData = {
       ...updates,
       lastActivity: new Date().toISOString(),
     };
-    this.students.set(id, updatedStudent);
-    return updatedStudent;
+
+    const result = await db
+      .update(students)
+      .set(updateData)
+      .where(eq(students.id, id))
+      .returning();
+    
+    return result[0];
   }
 
   async deleteStudent(id: number): Promise<boolean> {
-    return this.students.delete(id);
+    const result = await db.delete(students).where(eq(students.id, id)).returning();
+    return result.length > 0;
   }
 
   async searchStudents(query: string): Promise<Student[]> {
-    const students = Array.from(this.students.values());
-    const lowerQuery = query.toLowerCase();
-    return students.filter(student => 
-      student.name.toLowerCase().includes(lowerQuery) ||
-      student.email.toLowerCase().includes(lowerQuery) ||
-      student.course.toLowerCase().includes(lowerQuery)
-    );
+    const searchTerm = `%${query}%`;
+    return await db
+      .select()
+      .from(students)
+      .where(
+        or(
+          ilike(students.name, searchTerm),
+          ilike(students.email, searchTerm),
+          ilike(students.course, searchTerm)
+        )
+      )
+      .orderBy(students.id);
   }
 
   // Courses
   async getCourses(): Promise<Course[]> {
-    return Array.from(this.courses.values());
+    return await db.select().from(courses).orderBy(courses.id);
   }
 
   async getCourse(id: number): Promise<Course | undefined> {
-    return this.courses.get(id);
+    const result = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
+    return result[0];
   }
 
   async createCourse(insertCourse: InsertCourse): Promise<Course> {
-    const course: Course = {
-      ...insertCourse,
-      id: this.currentCourseId++,
-      description: insertCourse.description ?? null,
-      isActive: insertCourse.isActive ?? null,
-    };
-    this.courses.set(course.id, course);
-    return course;
+    const result = await db.insert(courses).values(insertCourse).returning();
+    return result[0];
   }
 
   // Assignments
   async getAssignments(): Promise<Assignment[]> {
-    return Array.from(this.assignments.values());
+    return await db.select().from(assignments).orderBy(assignments.id);
   }
 
   async getAssignmentsByStudent(studentId: number): Promise<Assignment[]> {
-    return Array.from(this.assignments.values()).filter(assignment => assignment.studentId === studentId);
+    return await db
+      .select()
+      .from(assignments)
+      .where(eq(assignments.studentId, studentId))
+      .orderBy(assignments.id);
   }
 
   async createAssignment(insertAssignment: InsertAssignment): Promise<Assignment> {
-    const assignment: Assignment = {
-      ...insertAssignment,
-      id: this.currentAssignmentId++,
-      grade: insertAssignment.grade ?? null,
-      maxGrade: insertAssignment.maxGrade ?? null,
-      submissionDate: insertAssignment.submissionDate ?? null,
-      status: insertAssignment.status ?? null,
-    };
-    this.assignments.set(assignment.id, assignment);
-    return assignment;
+    const result = await db.insert(assignments).values(insertAssignment).returning();
+    return result[0];
   }
 
   async updateAssignment(id: number, updates: Partial<InsertAssignment>): Promise<Assignment | undefined> {
-    const assignment = this.assignments.get(id);
-    if (!assignment) return undefined;
-
-    const updatedAssignment: Assignment = {
-      ...assignment,
-      ...updates,
-    };
-    this.assignments.set(id, updatedAssignment);
-    return updatedAssignment;
+    const result = await db
+      .update(assignments)
+      .set(updates)
+      .where(eq(assignments.id, id))
+      .returning();
+    
+    return result[0];
   }
 
   // Progress
   async getProgress(): Promise<Progress[]> {
-    return Array.from(this.progress.values());
+    return await db.select().from(progress).orderBy(progress.id);
   }
 
   async getProgressByStudent(studentId: number): Promise<Progress[]> {
-    return Array.from(this.progress.values()).filter(p => p.studentId === studentId);
+    return await db
+      .select()
+      .from(progress)
+      .where(eq(progress.studentId, studentId))
+      .orderBy(progress.id);
   }
 
   async createProgress(insertProgress: InsertProgress): Promise<Progress> {
-    const progressRecord: Progress = {
-      ...insertProgress,
-      id: this.currentProgressId++,
-      overallGrade: insertProgress.overallGrade ?? null,
-      attendanceRate: insertProgress.attendanceRate ?? null,
-    };
-    this.progress.set(progressRecord.id, progressRecord);
-    return progressRecord;
+    const result = await db.insert(progress).values(insertProgress).returning();
+    return result[0];
   }
 
   async updateProgress(id: number, updates: Partial<InsertProgress>): Promise<Progress | undefined> {
-    const progressRecord = this.progress.get(id);
-    if (!progressRecord) return undefined;
-
-    const updatedProgress: Progress = {
-      ...progressRecord,
-      ...updates,
-    };
-    this.progress.set(id, updatedProgress);
-    return updatedProgress;
+    const result = await db
+      .update(progress)
+      .set(updates)
+      .where(eq(progress.id, id))
+      .returning();
+    
+    return result[0];
   }
 
   // Statistics
@@ -228,40 +218,40 @@ export class MemStorage implements IStorage {
     averageGrade: number;
     attendanceRate: number;
   }> {
-    const students = Array.from(this.students.values());
-    const courses = Array.from(this.courses.values());
-    const progressRecords = Array.from(this.progress.values());
-
-    const totalStudents = students.length;
-    const activeCourses = courses.filter(c => c.isActive).length;
+    // Get total students count
+    const totalStudentsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(students);
     
-    const gradesWithNumbers = progressRecords
-      .map(p => p.overallGrade)
-      .filter((grade): grade is string => grade !== null)
-      .map(grade => parseFloat(grade))
-      .filter(grade => !isNaN(grade));
+    // Get active courses count
+    const activeCoursesResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(courses)
+      .where(eq(courses.isActive, true));
     
-    const averageGrade = gradesWithNumbers.length > 0 
-      ? gradesWithNumbers.reduce((sum, grade) => sum + grade, 0) / gradesWithNumbers.length
-      : 0;
-
-    const attendanceRates = progressRecords
-      .map(p => p.attendanceRate)
-      .filter((rate): rate is string => rate !== null)
-      .map(rate => parseFloat(rate))
-      .filter(rate => !isNaN(rate));
+    // Get average grade from progress records
+    const avgGradeResult = await db
+      .select({ 
+        avg: sql<number>`avg(cast(${progress.overallGrade} as decimal))` 
+      })
+      .from(progress)
+      .where(sql`${progress.overallGrade} is not null and ${progress.overallGrade} != ''`);
     
-    const attendanceRate = attendanceRates.length > 0
-      ? attendanceRates.reduce((sum, rate) => sum + rate, 0) / attendanceRates.length
-      : 0;
+    // Get average attendance rate
+    const avgAttendanceResult = await db
+      .select({ 
+        avg: sql<number>`avg(cast(${progress.attendanceRate} as decimal))` 
+      })
+      .from(progress)
+      .where(sql`${progress.attendanceRate} is not null and ${progress.attendanceRate} != ''`);
 
     return {
-      totalStudents,
-      activeCourses,
-      averageGrade: Math.round(averageGrade * 10) / 10,
-      attendanceRate: Math.round(attendanceRate * 10) / 10,
+      totalStudents: Number(totalStudentsResult[0]?.count || 0),
+      activeCourses: Number(activeCoursesResult[0]?.count || 0),
+      averageGrade: Math.round((Number(avgGradeResult[0]?.avg) || 0) * 10) / 10,
+      attendanceRate: Math.round((Number(avgAttendanceResult[0]?.avg) || 0) * 10) / 10,
     };
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

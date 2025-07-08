@@ -9,6 +9,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add error handling middleware
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("API Error:", err);
+  res.status(500).json({ 
+    message: process.env.NODE_ENV === "development" ? err.message : "Internal server error" 
+  });
+});
+
 // Register all API routes (no need to wait for the returned HTTP server)
 registerRoutes(app);
 

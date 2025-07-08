@@ -3,6 +3,12 @@
   publish = "dist/public"
   functions = "netlify/functions"
 
+[build.environment]
+  NODE_VERSION = "18"
+
+[functions]
+  node_bundler = "esbuild"
+
 # Redirect all /api/* requests to the bundled Express function
 [[redirects]]
   from = "/api/*"

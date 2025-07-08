@@ -76,6 +76,7 @@
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0",
+    "dotenv": "^16.4.5",
     "serverless-http": "^3.0.0"
   },
   "devDependencies": {
@@ -96,6 +97,7 @@
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.30.4",
     "esbuild": "^0.25.0",
+    "@types/dotenv": "^8.2.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
